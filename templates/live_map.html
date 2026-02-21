@@ -1,0 +1,32 @@
+<script>
+    // Load alerts from backend
+    fetch('/alerts_data')
+        .then(response => response.json())
+        .then(alerts => {
+            alerts.forEach(alert => {
+
+                // Choose marker color based on severity
+                let color = "blue";
+                if (alert.severity === "red") color = "red";
+                if (alert.severity === "orange") color = "orange";
+                if (alert.severity === "yellow") color = "yellow";
+
+                // Create alert marker
+                const marker = L.circleMarker([alert.lat, alert.lon], {
+                    radius: 12,
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.9
+                }).addTo(map);
+
+                // Popup with alert details
+                marker.bindPopup(`
+                    <strong>${alert.title}</strong><br>
+                    <b>Location:</b> ${alert.location}<br>
+                    <b>Severity:</b> ${alert.severity_label}<br>
+                    <b>Time:</b> ${alert.time}<br>
+                    <em>${alert.description}</em>
+                `);
+            });
+        });
+</script>

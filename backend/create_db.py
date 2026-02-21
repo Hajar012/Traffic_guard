@@ -1,6 +1,6 @@
 from app import app
-from extensions import db
+from backend.extensions import db
 
 with app.app_context():
     db.create_all()
-    print("Database created!")
+    print("Database created successfully!")
