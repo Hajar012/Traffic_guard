@@ -175,3 +175,6 @@ def add_accident():
 # ----------------------------
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+print("Traffic guard started")
