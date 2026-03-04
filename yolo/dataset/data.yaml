@@ -1,0 +1,6 @@
+names:
+  0: accident
+  1: non-accident
+path: C:\Users\ihaja\PycharmProjects\Traffic_guard\yolo\real_dataset
+train: images/train
+val: images/val
