@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Traffic Guard Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="app">
+  <div class="app" data-role="{{ role }}"></div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">Traffic Guard</div>
+
+    <nav class="menu">
+      <button class="menu-item active" data-view="dashboard">📊 <span>Dashboard</span></button>
+      <button class="menu-item" data-view="liveMap">🗺️ <span>Live Map</span></button>
+      <button class="menu-item" data-view="edgeDevices">🖥️ <span>Edge Devices</span></button>
+      <button class="menu-item" data-view="alerts">🚨 <span>Alerts</span></button>
+      <button class="menu-item" data-view="modelPerformance">🤖 <span>Model Performance</span></button>
+      <button class="menu-item" data-view="analytics">📈 <span>Analytics</span></button>
+      <button class="menu-item" data-view="settings">⚙️ <span>Settings</span></button>
+
+    </nav>
+<a href="/logout" class="logout-btn">⇦ Logout</a>
+    <div class="sidebar-user">
+      <p class="email">admin@traffic.gov</p>
+    </div>
+
+
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-layout">
+    <!-- HEADER -->
+    <header class="topbar">
+
+      <div class="topbar-left">
+        <input type="text" placeholder="Search devices, alerts, locations...">
+      </div>
+      <div class="topbar-right">
+        <span class="status-dot"></span>
+        <span>System Online</span>
+         <div class="notif-bell">
+  🔔
+  <span class="notif-count">3</span>
+</div>
+        <span class="time">--:--:-- — --- --, ----</span>
+       <div class="user-info">
+    <span>{{ name }}</span>
+</div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+
+      <!-- DASHBOARD VIEW -->
+      <section class="view active" id="view-dashboard">
+        <div class="section-header">
+          <h2>Traffic Guard Dashboard</h2>
+          <p>AI-powered real-time traffic monitoring with YOLOv11 object detection across Riyadh city</p>
+        </div>
+
+        <!-- KPI CARDS -->
+        <div class="grid grid-4 mb-24">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div>
+                <p class="stat-title">Active Edge Devices</p>
+                <p class="stat-value">7/8</p>
+              </div>
+              <div class="stat-icon bg-blue">📷</div>
+            </div>
+            <p class="stat-change positive">+2 since yesterday</p>
+            <p class="stat-sub">87.5% operational</p>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div>
+                <p class="stat-title">Active Alerts</p>
+                <p class="stat-value">7</p>
+              </div>
+              <div class="stat-icon bg-red">⚠️</div>
+            </div>
+            <p class="stat-change positive">-3 from yesterday</p>
+            <p class="stat-sub">3 pending verification</p>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div>
+                <p class="stat-title">Model Accuracy</p>
+                <p class="stat-value">94.2%</p>
+              </div>
+              <div class="stat-icon bg-purple">🧠</div>
+            </div>
+            <p class="stat-change positive">+1.2% this week</p>
+            <p class="stat-sub">YOLOv11-v2.3</p>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div>
+                <p class="stat-title">Avg Processing Speed</p>
+                <p class="stat-value">45ms</p>
+              </div>
+              <div class="stat-icon bg-green">⚡</div>
+            </div>
+            <p class="stat-change positive">-5ms improvement</p>
+            <p class="stat-sub">Real-time inference</p>
+          </div>
+        </div>
+
+        <!-- HERO GRADIENT CARDS -->
+        <div class="grid grid-3 mb-24">
+          <div class="hero-card hero-blue">
+            <div class="hero-top">
+              <div>
+                <p class="hero-label">Total Detections Today</p>
+                <p class="hero-value">28,472</p>
+              </div>
+              <div class="hero-icon">📈</div>
+            </div>
+            <p class="hero-sub">+12% compared to yesterday</p>
+          </div>
+
+          <div class="hero-card hero-green">
+            <div class="hero-top">
+              <div>
+                <p class="hero-label">System Uptime</p>
+                <p class="hero-value">99.8%</p>
+              </div>
+              <div class="hero-icon">📊</div>
+            </div>
+            <p class="hero-sub">Last 30 days average</p>
+          </div>
+
+          <div class="hero-card hero-orange">
+            <div class="hero-top">
+              <div>
+                <p class="hero-label">Response Time</p>
+                <p class="hero-value">2.3m</p>
+              </div>
+              <div class="hero-icon">⏱️</div>
+            </div>
+            <p class="hero-sub">Avg alert verification time</p>
+          </div>
+        </div>
+
+        <!-- CHART + DEVICE PANEL (placeholders) -->
+        <div class="grid grid-2 mb-24">
+         <div class="card">
+    <h3>Traffic & Alert Trends</h3>
+    <div class="chart-container">
+        <canvas id="trafficChart"></canvas>
+    </div>
+</div>
+          <div class="card">
+            <h3>Edge Device Status</h3>
+            <p class="muted">Real-time monitoring of all devices</p>
+            <div class="device-summary-row">
+              <span class="pill pill-green">7 Online</span>
+              <span class="pill pill-red">1 Offline</span>
+            </div>
+            <div class="device-list">
+              <div class="device-row">
+                <div>
+                  <p class="device-id">ED-001</p>
+                  <p class="device-loc">King Fahd Road North</p>
+                </div>
+                <span class="status-badge green">Online</span>
+              </div>
+              <div class="device-row">
+                <div>
+                  <p class="device-id">ED-002</p>
+                  <p class="device-loc">Olaya District</p>
+                </div>
+                <span class="status-badge green">Online</span>
+              </div>
+              <div class="device-row">
+                <div>
+                  <p class="device-id">ED-003</p>
+                  <p class="device-loc">King Abdullah Road</p>
+                </div>
+                <span class="status-badge green">Online</span>
+              </div>
+              <div class="device-row">
+                <div>
+                  <p class="device-id">ED-004</p>
+                  <p class="device-loc">King Fahd Road</p>
+                </div>
+                <span class="status-badge red">Offline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ALERT MANAGEMENT + SIDE PANEL (placeholder) -->
+        <div class="grid grid-3">
+          <div class="card span-2">
+            <h3>Alert Management</h3>
+            <p class="muted">Review and verify AI-detected incidents</p>
+            <div class="alert-list">
+              <div class="alert-row">
+                <div>
+                  <p class="alert-title">Accident (ALT-2024-001)</p>
+                  <p class="alert-meta">Multi-vehicle collision • King Fahd Road North</p>
+                </div>
+                <span class="status-badge red">High</span>
+              </div>
+              <div class="alert-row">
+                <div>
+                  <p class="alert-title">Congestion (ALT-2024-002)</p>
+                  <p class="alert-meta">Heavy traffic • Olaya District</p>
+                </div>
+                <span class="status-badge orange">Medium</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Recent Activity</h3>
+            <p class="muted">Latest system events</p>
+            <ul class="activity-list">
+              <li>ED-001 verified accident alert</li>
+              <li>ED-003 went offline</li>
+              <li>Model YOLOv11-v2.3 deployed</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+<section class="view" id="view-alerts">
+  <div class="section-header">
+    <h2>Alerts</h2>
+    <p>Review, verify, and manage AI‑detected incidents</p>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card span-2">
+      <h3>Active Alerts</h3>
+      <p class="muted">Real-time AI‑detected incidents</p>
+
+      <div id="alertList" class="alert-list">
+        <!-- Alerts will be inserted here by JS -->
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Alert Details</h3>
+      <p class="muted">Select an alert to view details</p>
+
+      <div id="alertDetails" class="alert-details">
+        <p>No alert selected</p>
+      </div>
+    </div>
+  </div>
+</section>
+      <!-- LIVE MAP VIEW -->
+      <section class="view" id="view-liveMap">
+        <div class="section-header">
+          <h2>Live Traffic Map</h2>
+          <p>Real-time visualization of edge device locations and status across Riyadh</p>
+        </div>
+        <div class="card">
+          <div id="riyadhMap" style="height: 450px; border-radius: 12px;"></div>
+        </div>
+      </section>
+
+      <!-- EDGE DEVICES VIEW -->
+     <!-- EDGE DEVICES VIEW -->
+<section class="view" id="view-edgeDevices">
+
+  <div class="section-header">
+    <h2>Edge Device Status</h2>
+    <p>Real-time monitoring of all edge devices</p>
+  </div>
+
+  <!-- SEARCH + FILTER BAR -->
+  <div class="device-controls">
+    <input type="text" id="deviceSearch" placeholder="Search by ID or location...">
+
+    <div class="device-filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="online">Online</button>
+      <button class="filter-btn" data-filter="offline">Offline</button>
+    </div>
+  </div>
+
+  <!-- BIG WINDOW CONTAINER -->
+  <div class="device-window">
+
+    <!-- DEVICE ROW -->
+    <div class="device-row online"
+         data-id="ED-001"
+         data-location="King Fahd Road North"
+         data-status="online">
+
+      <div class="device-left">
+        <h3>ED-001</h3>
+        <p class="device-location">📌 King Fahd Road North</p>
+        <p class="device-ip">🖧 192.168.1.101</p>
+        <p class="device-model">🤖 YOLOv11-v2.3</p>
+      </div>
+
+      <div class="device-middle">
+        <p><strong>Uptime:</strong> 15d 4h 23m</p>
+        <p><strong>Last Detection:</strong> 2 min ago</p>
+        <p><strong>FPS:</strong> 30</p>
+        <p><strong>CPU:</strong> 45%</p>
+        <p><strong>Temp:</strong> 52°C</p>
+        <p><strong>Detections:</strong> 1,247</p>
+      </div>
+
+      <div class="device-right">
+        <span class="status-badge green">Online</span>
+        <span class="pill pill-red">🚨 2 Alerts</span>
+      </div>
+
+    </div>
+
+    <!-- COPY THIS BLOCK FOR OTHER DEVICES -->
+
+  </div>
+</section>
+
+      <!-- MODEL PERFORMANCE VIEW -->
+     <!-- MODEL PERFORMANCE VIEW -->
+<section class="view" id="view-modelPerformance">
+
+  <div class="section-header">
+    <h2>YOLOv11 Model Performance</h2>
+    <p>Real-time performance metrics and accuracy statistics</p>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="grid grid-4 mb-24">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <p class="stat-title">Detection Accuracy</p>
+          <p class="stat-value">94.2%</p>
+        </div>
+        <div class="stat-icon bg-purple">🎯</div>
+      </div>
+      <p class="stat-change positive">+1.2% this week</p>
+      <p class="stat-sub">Overall performance</p>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <p class="stat-title">Avg Inference Time</p>
+          <p class="stat-value">45ms</p>
+        </div>
+        <div class="stat-icon bg-green">⚡</div>
+      </div>
+      <p class="stat-change positive">-5ms improvement</p>
+      <p class="stat-sub">Per frame processing</p>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <p class="stat-title">False Positives</p>
+          <p class="stat-value">2.1%</p>
+        </div>
+        <div class="stat-icon bg-red">❌</div>
+      </div>
+      <p class="stat-change positive">-0.5% improvement</p>
+      <p class="stat-sub">Error rate</p>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <div>
+          <p class="stat-title">Objects Detected</p>
+          <p class="stat-value">28.4K</p>
+        </div>
+        <div class="stat-icon bg-blue">🚗</div>
+      </div>
+      <p class="stat-change positive">+12% increase</p>
+      <p class="stat-sub">Today's total</p>
+    </div>
+  </div>
+
+  <!-- BIG WINDOW -->
+  <div class="device-window">
+
+    <div class="grid grid-2">
+
+      <!-- PERFORMANCE CHART -->
+      <div class="card">
+        <h3>Performance Over Time</h3>
+        <div class="chart-container">
+          <canvas id="performanceChart"></canvas>
+        </div>
+      </div>
+
+      <!-- DETECTION CLASSES -->
+      <div class="card">
+        <h3>Detection Classes</h3>
+
+        <div class="class-row">
+          <div class="class-top">
+            <span>Cars</span>
+            <span>18,234 (64%)</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar" style="width:64%"></div>
+          </div>
+        </div>
+
+        <div class="class-row">
+          <div class="class-top">
+            <span>Trucks</span>
+            <span>5,421 (19%)</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar" style="width:19%"></div>
+          </div>
+        </div>
+
+        <div class="class-row">
+          <div class="class-top">
+            <span>Motorcycles</span>
+            <span>3,189 (11%)</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar" style="width:11%"></div>
+          </div>
+        </div>
+
+        <div class="class-row">
+          <div class="class-top">
+            <span>Pedestrians</span>
+            <span>1,628 (6%)</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar" style="width:6%"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</section>
+      <!-- ANALYTICS VIEW -->
+      <section class="view" id="view-analytics">
+        <div class="section-header">
+          <h2>Traffic Analytics</h2>
+          <p>Historical data and trends analysis</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>Traffic Trends</h3>
+            <div class="chart-placeholder">[Chart here]</div>
+          </div>
+          <div class="card">
+            <h3>Top Routes</h3>
+            <ul class="activity-list">
+              <li>King Fahd Road — High volume</li>
+              <li>Olaya District — Moderate congestion</li>
+              <li>King Abdullah Road — Peak at 6 PM</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS VIEW -->
+      <section class="view" id="view-settings">
+        <div class="section-header">
+          <h2>System Settings</h2>
+          <p>Configure system parameters and preferences</p>
+        </div>
+
+        <div class="card">
+          <h3>General Settings</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>System Name</label>
+              <input type="text" value="Traffic Guard">
+            </div>
+            <div class="form-group">
+              <label>Alert Threshold</label>
+              <input type="number" value="0.85" step="0.05">
+            </div>
+            <div class="form-group">
+              <label>Model Version</label>
+              <select>
+                <option>YOLOv11-v2.3</option>
+                <option>YOLOv11-v2.2</option>
+                <option>YOLOv11-v2.1</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+<script>
+  const userRole = "{{ role }}";
+</script>
+    </main>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+
+</body>
+</html>

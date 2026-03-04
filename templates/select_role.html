@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Traffic Guard Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      width: 350px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+    }
+
+    .admin-btn { background: #1d4ed8; }
+    .authority-btn { background: #22c55e; }
+    .guest-btn { background: #6b7280; }
+  </style>
+</head>
+
+<body>
+
+  <div class="login-container">
+    <h2>Traffic Guard Login</h2>
+
+    <form method="GET" action="/login">
+      <input type="hidden" name="role" value="admin">
+      <button class="btn admin-btn" type="submit">Login as Admin</button>
+    </form>
+
+    <form method="GET" action="/login">
+      <input type="hidden" name="role" value="authority">
+      <button class="btn authority-btn" type="submit">Login as Authority</button>
+    </form>
+
+    <form method="GET" action="/login">
+      <input type="hidden" name="role" value="guest">
+      <button class="btn guest-btn" type="submit">Guest Preview</button>
+    </form>
+
+  </div>
+
+</body>
+</html>
