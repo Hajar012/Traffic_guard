@@ -1,4 +1,4 @@
-path: C:\Users\ihaja\PycharmProjects\Traffic_guard\yolo\dataset
+path: C:\Users\ihaja\PycharmProjects\Traffic_guard\yolo\combined_dataset
 train: images/train
 val: images/val
 names:
