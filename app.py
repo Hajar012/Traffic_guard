@@ -183,6 +183,10 @@ def update_alert():
     if not alert:
         return jsonify({"error": "Alert not found"}), 404
 
+    # CRITICAL: lock decision after first update
+    if alert.status and alert.status != "Pending":
+        return jsonify({"error": "Already decided"}), 400
+
     new_status = data.get("status")
     if new_status not in ["Verified", "Rejected"]:
         return jsonify({
@@ -233,10 +237,48 @@ def update_alert():
 # -------------------------------
 @app.route("/detect", methods=["POST"])
 def detect():
-    data = request.get_json()
+    # Accept both multipart/form-data with file upload and legacy JSON
+    try:
+        print("[DETECT] Incoming request:", {
+            "method": request.method,
+            "content_type": request.content_type,
+            "has_files": bool(request.files),
+            "form_keys": list(request.form.keys()) if request.form else [],
+        })
+    except Exception:
+        pass
+    data = None
+    image_path_rel = None
+
+    if request.files:
+        # Multipart upload
+        data = request.form
+        image_file = request.files.get("image")
+        if image_file and image_file.filename:
+            import os
+            from datetime import datetime
+            uploads_dir = os.path.join(app.root_path, "static", "uploads")
+            os.makedirs(uploads_dir, exist_ok=True)
+
+            # Create unique filename
+            ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+            safe_name = image_file.filename.replace(" ", "_")
+            filename = f"alert_{ts}_{safe_name}"
+            save_path = os.path.join(uploads_dir, filename)
+            image_file.save(save_path)
+
+            # Store relative path to serve via /static
+            image_path_rel = f"uploads/{filename}"
+            try:
+                print(f"[DETECT] Saved upload to static/{image_path_rel}")
+            except Exception:
+                pass
+    else:
+        # JSON fallback for backwards compatibility
+        data = request.get_json(silent=True) or {}
 
     if not data:
-        return jsonify({"error": "Invalid JSON body"}), 400
+        return jsonify({"error": "Invalid body"}), 400
 
     device_id = data.get("device_id")
     alert_type = data.get("type", "accident")
@@ -278,11 +320,24 @@ def detect():
         location=data.get("location") or (device.location if device else fallback["location"]),
         lat=data.get("lat", fallback["lat"]),
         lon=data.get("lon", fallback["lon"]),
-        status="Pending"
+        status="Pending",
+        image_path=image_path_rel
     )
 
     db.session.add(alert)
     db.session.commit()
+
+    try:
+        print("[DETECT] Created alert:", {
+            "id": alert.id,
+            "device_id": alert.device_id,
+            "type": alert.type,
+            "status": alert.status,
+            "image_path": alert.image_path,
+            "confidence": alert.confidence,
+        })
+    except Exception:
+        pass
 
     return jsonify({
         "message": "Alert received",

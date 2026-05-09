@@ -190,26 +190,36 @@ function createAlertCard(alert, includeActions) {
       ? `${Math.round(Number(alert.confidence) * 100)}%`
       : "N/A";
 
+  const imgHtml = alert.image_path
+    ? `<img src="/static/${alert.image_path}"
+             alt="alert image"
+             class="alert-thumb"
+             onclick="openImagePreview('/static/${alert.image_path}')" />`
+    : "";
+
   card.innerHTML = `
-    <div>
-      <p class="alert-title">Alert #${alert.id} — ${alert.type || "accident"}</p>
-      <p class="alert-meta">
-        Device: ${alert.device_id || "Unknown"} •
-        Status: ${status}
-      </p>
-      <p class="alert-meta">
-        Confidence: ${confidence} •
-        Time: ${alert.timestamp || alert.time || ""}
-      </p>
-      <p class="alert-meta">
-        Location: ${alert.location || "Unknown location"}
-      </p>
+    <div style="display:flex; gap:12px; align-items:flex-start;">
+      ${imgHtml}
+      <div>
+        <p class="alert-title">Alert #${alert.id} — ${alert.type || "accident"}</p>
+        <p class="alert-meta">
+          Device: ${alert.device_id || "Unknown"} •
+          Status: ${status}
+        </p>
+        <p class="alert-meta">
+          Confidence: ${confidence} •
+          Time: ${alert.timestamp || alert.time || ""}
+        </p>
+        <p class="alert-meta">
+          Location: ${alert.location || "Unknown location"}
+        </p>
+      </div>
     </div>
 
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
       <span class="pill ${getStatusPillClass(status)}">${status}</span>
 
-      ${includeActions ? renderAlertButtons(alert.id) : ""}
+      ${includeActions ? renderAlertButtons(alert) : ""}
     </div>
   `;
 
@@ -229,19 +239,24 @@ function createAlertCard(alert, includeActions) {
   return card;
 }
 
-function renderAlertButtons(alertId) {
+function renderAlertButtons(alert) {
   if (userRole === "guest") {
     return "";
   }
 
+  const locked = alert.status && alert.status !== "Pending";
+  const disabledAttr = locked ? "disabled" : "";
+  const titleAttr = locked ? "title=\"Decision Locked\"" : "";
+
   return `
-    <button class="action-btn success" onclick="updateAlert(${alertId}, 'Verified')">
+    <button class="action-btn success" ${disabledAttr} ${titleAttr} onclick="updateAlert(${alert.id}, 'Verified')">
       ✅ Verify
     </button>
 
-    <button class="action-btn danger" onclick="updateAlert(${alertId}, 'Rejected')">
+    <button class="action-btn danger" ${disabledAttr} ${titleAttr} onclick="updateAlert(${alert.id}, 'Rejected')">
       ❌ Reject
     </button>
+    ${locked ? '<span class="lock-msg">Decision Locked</span>' : ''}
   `;
 }
 
@@ -254,6 +269,13 @@ function renderAlertDetails(alert) {
       ? `${Math.round(Number(alert.confidence) * 100)}%`
       : "N/A";
 
+  const imgHtml = alert.image_path
+    ? `<div style="margin:8px 0;">
+         <img src="/static/${alert.image_path}" alt="alert image" class="alert-image"
+              onclick="openImagePreview('/static/${alert.image_path}')" />
+       </div>`
+    : "";
+
   container.innerHTML = `
     <p><strong>ID:</strong> ${alert.id}</p>
     <p><strong>Device:</strong> ${alert.device_id || "Unknown"}</p>
@@ -263,6 +285,7 @@ function renderAlertDetails(alert) {
     <p><strong>Status:</strong> ${alert.status || "Unknown"}</p>
     <p><strong>Timestamp:</strong> ${alert.timestamp || alert.time || ""}</p>
     <p><strong>Coordinates:</strong> ${alert.lat || "N/A"}, ${alert.lon || "N/A"}</p>
+    ${imgHtml}
 
     <p style="margin-top:10px;">
       <strong>Description:</strong><br>
@@ -274,7 +297,7 @@ function renderAlertDetails(alert) {
         Show on Map
       </button>
 
-      ${renderAlertButtons(alert.id)}
+      ${renderAlertButtons(alert)}
     </div>
   `;
 }
@@ -345,6 +368,27 @@ async function updateAlert(id, status) {
     alert("Could not update alert. Please check the server.");
   }
 }
+
+// -----------------------------
+// IMAGE PREVIEW POPUP
+// -----------------------------
+function openImagePreview(src) {
+  const modal = document.getElementById('imagePreviewModal');
+  const img = document.getElementById('imagePreview');
+  if (!modal || !img) return;
+  img.src = src;
+  modal.style.display = 'flex';
+}
+
+function closeImagePreview() {
+  const modal = document.getElementById('imagePreviewModal');
+  if (!modal) return;
+  modal.style.display = 'none';
+}
+
+// expose for inline handlers
+window.openImagePreview = openImagePreview;
+window.closeImagePreview = closeImagePreview;
 
 // Expose for inline onclick handlers
 window.updateAlert = updateAlert;

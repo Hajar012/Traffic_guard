@@ -29,6 +29,7 @@ class Alert(db.Model):
     device_id = db.Column(db.String(50))
     type = db.Column(db.String(50), default="accident")
     confidence = db.Column(db.Float)
+    image_path = db.Column(db.String(300))
     lat = db.Column(db.Float)
     lon = db.Column(db.Float)
     status = db.Column(db.String(50), default="Pending")
@@ -39,6 +40,7 @@ class Alert(db.Model):
             "title": "Traffic Accident Alert",
             "type": self.type or "accident",
             "confidence": self.confidence,
+            "image_path": self.image_path,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             "time": self.timestamp.strftime("%I:%M %p"),
             "location": self.location,
