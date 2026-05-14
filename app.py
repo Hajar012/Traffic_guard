@@ -24,6 +24,41 @@ from backend.models import User, Alert, Device, Feedback, ModelUpdate
 
 
 # -------------------------------
+# LIGHTWEIGHT SQLITE MIGRATIONS
+# Ensure Device table has all expected columns without Alembic
+# -------------------------------
+def ensure_device_table_columns():
+    try:
+        from sqlalchemy import text
+        with app.app_context():
+            engine = db.get_engine()
+            with engine.connect() as conn:
+                # Check existing columns
+                res = conn.execute(text("PRAGMA table_info(device);"))
+                existing_cols = {row[1] for row in res.fetchall()}  # name at index 1
+
+                # Desired columns and SQL to add them when missing
+                migrations = [
+                    ("name", "ALTER TABLE device ADD COLUMN name VARCHAR(100)") ,
+                    ("type", "ALTER TABLE device ADD COLUMN type VARCHAR(50)"),
+                    ("status", "ALTER TABLE device ADD COLUMN status VARCHAR(20) DEFAULT 'Offline'"),
+                    ("lat", "ALTER TABLE device ADD COLUMN lat REAL"),
+                    ("lon", "ALTER TABLE device ADD COLUMN lon REAL"),
+                ]
+
+                for col, sql in migrations:
+                    if col not in existing_cols:
+                        conn.execute(text(sql))
+    except Exception as e:
+        # Fail-safe: log and continue; app can still run with older schema
+        print(f"[WARN] Device schema migration skipped or failed: {e}")
+
+
+# Run migrations early
+ensure_device_table_columns()
+
+
+# -------------------------------
 # USER DATABASE
 # -------------------------------
 users = {
@@ -184,13 +219,17 @@ def device_status():
             ModelUpdate.timestamp.desc()
         ).first()
 
-        coordinates = fallback_coordinates[index % len(fallback_coordinates)]
+        # Prefer stored coordinates; fall back to canned ones if missing
+        if device.lat is not None and device.lon is not None:
+            coordinates = {"lat": float(device.lat), "lon": float(device.lon)}
+        else:
+            coordinates = fallback_coordinates[index % len(fallback_coordinates)]
 
         result.append({
             "id": device.device_id,
             "device_id": device.device_id,
             "location": device.location,
-            "status": "Online" if latest_update else "No Updates",
+            "status": "Online" if latest_update else (device.status or "No Updates"),
             "last_update": latest_update.timestamp.strftime("%Y-%m-%d %H:%M:%S")
             if latest_update and latest_update.timestamp else None,
             "lat": coordinates["lat"],
@@ -484,6 +523,95 @@ def federated_update():
         "message": "Update received",
         "device_id": device_id
     })
+
+
+# -------------------------------
+# ADMIN: CREATE DEVICE (API)
+# -------------------------------
+@app.route("/admin/devices", methods=["POST"])
+@role_required("admin", api=True)
+def admin_create_device():
+    """Create a new edge device (admin only).
+
+    Expected JSON body with required fields:
+      - device_id (string)
+      - name (string)
+      - type (string)
+      - status (string: online|offline|maintenance)
+      - location (string)
+      - lat (float)
+      - lon (float)
+    """
+    data = request.get_json(silent=True) or {}
+
+    # Extract and normalize
+    device_id = (data.get("device_id") or "").strip()
+    name = (data.get("name") or "").strip()
+    dev_type = (data.get("type") or "").strip()
+    status = (data.get("status") or "").strip()
+    location = (data.get("location") or "").strip()
+    lat_raw = data.get("lat")
+    lon_raw = data.get("lon")
+
+    # Validate required fields
+    missing = [
+        k for k, v in (
+            ("device_id", device_id),
+            ("name", name),
+            ("type", dev_type),
+            ("status", status),
+            ("location", location),
+            ("lat", lat_raw),
+            ("lon", lon_raw),
+        ) if (v is None or (isinstance(v, str) and not v.strip()))
+    ]
+    if missing:
+        return jsonify({"error": f"Missing required field(s): {', '.join(missing)}"}), 400
+
+    # Normalize device_id (avoid dupes due to case)
+    device_id_norm = device_id.upper()
+
+    # Validate enums
+    allowed_status = {"online", "offline", "maintenance"}
+    if status.lower() not in allowed_status:
+        return jsonify({"error": "Invalid status. Allowed: online, offline, maintenance"}), 400
+
+    # Validate lat/lon
+    try:
+        lat = float(lat_raw)
+        lon = float(lon_raw)
+    except (TypeError, ValueError):
+        return jsonify({"error": "lat and lon must be numeric"}), 400
+
+    if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+        return jsonify({"error": "lat must be in [-90,90] and lon in [-180,180]"}), 400
+
+    # Uniqueness check
+    existing = Device.query.filter_by(device_id=device_id_norm).first()
+    if existing:
+        return jsonify({"error": "Device already exists"}), 409
+
+    device = Device(
+        device_id=device_id_norm,
+        name=name,
+        type=dev_type,
+        status=status.capitalize(),
+        location=location,
+        lat=lat,
+        lon=lon,
+    )
+    db.session.add(device)
+    db.session.commit()
+
+    return jsonify({
+        "device_id": device.device_id,
+        "name": device.name,
+        "type": device.type,
+        "status": device.status,
+        "location": device.location,
+        "lat": device.lat,
+        "lon": device.lon,
+    }), 201
 
 
 # -------------------------------
