@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Authority Logs | Traffic Guard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app" style="display:block; padding:24px; max-width:1100px; margin:0 auto;">
+    <h2>Incident Logs</h2>
+    <p class="muted">Recent alerts and verification feedback.</p>
+
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Alerts</h3>
+        <a class="action-btn" href="/export/reports">⬇ Export CSV</a>
+      </div>
+      <div style="overflow:auto;">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Time</th>
+              <th>Device</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in alerts %}
+            <tr>
+              <td>{{ a.id }}</td>
+              <td>{{ a.timestamp.strftime('%Y-%m-%d %H:%M:%S') if a.timestamp else '' }}</td>
+              <td>{{ a.device_id }}</td>
+              <td>{{ a.type }}</td>
+              <td>{{ a.status }}</td>
+              <td>{{ a.location }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Feedback</h3>
+      <div style="overflow:auto;">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Alert</th>
+              <th>Device</th>
+              <th>Correct</th>
+              <th>Label</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in feedbacks %}
+            <tr>
+              <td>{{ f.id }}</td>
+              <td>{{ f.alert_id }}</td>
+              <td>{{ f.device_id }}</td>
+              <td>{{ 'Yes' if f.is_correct else 'No' }}</td>
+              <td>{{ f.correct_label }}</td>
+              <td>{{ f.timestamp.strftime('%Y-%m-%d %H:%M:%S') if f.timestamp else '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p style="margin-top:20px;"><a href="/">← Back to Dashboard</a></p>
+  </div>
+</body>
+</html>

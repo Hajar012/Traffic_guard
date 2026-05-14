@@ -7,10 +7,17 @@ let cachedDevices = [];
 let currentDeviceFilter = "all";
 let selectedAlert = null;
 
+// Determine if current user is a guest (injected by template)
+const IS_GUEST = (typeof userRole !== 'undefined' && userRole === 'guest');
+
 // -----------------------------
 // SECTION NAVIGATION
 // -----------------------------
 function showSection(sectionId, button = null) {
+  // Block navigating to restricted sections in guest mode
+  if (IS_GUEST && (sectionId === "alertsSection" || sectionId === "federatedSection")) {
+    return;
+  }
   document.querySelectorAll(".section").forEach((section) => {
     section.style.display = "none";
   });
@@ -71,9 +78,13 @@ document.addEventListener("DOMContentLoaded", () => {
   refreshAll();
 
   setInterval(() => {
-    loadAlerts();
+    if (!IS_GUEST) {
+      loadAlerts();
+    }
     loadDevices();
-    loadGlobalModel();
+    if (!IS_GUEST) {
+      loadGlobalModel();
+    }
 
     if (liveMapInstance) {
       loadMap();
@@ -105,9 +116,30 @@ function updateClock() {
 // REFRESH EVERYTHING
 // -----------------------------
 async function refreshAll() {
-  await loadAlerts();
+  if (!IS_GUEST) {
+    await loadAlerts();
+  } else {
+    // Set clean placeholders in guest mode
+    const dashboardAlertList = document.getElementById("dashboardAlertList");
+    if (dashboardAlertList) {
+      dashboardAlertList.innerHTML = "<p>Alerts are hidden in Guest mode.</p>";
+    }
+    const alertCount = document.getElementById("alertCount");
+    const notifCount = document.getElementById("notifCount");
+    const alertStatusSummary = document.getElementById("alertStatusSummary");
+    if (alertCount) alertCount.textContent = 0;
+    if (notifCount) notifCount.textContent = 0;
+    if (alertStatusSummary) alertStatusSummary.textContent = "Guest mode";
+  }
   await loadDevices();
-  await loadGlobalModel();
+  if (!IS_GUEST) {
+    await loadGlobalModel();
+  } else {
+    const globalModel = document.getElementById("globalModel");
+    if (globalModel) {
+      globalModel.innerHTML = "<p>Federated details are hidden in Guest mode.</p>";
+    }
+  }
 
   if (liveMapInstance) {
     await loadMap();
@@ -118,6 +150,19 @@ async function refreshAll() {
 // ALERTS
 // -----------------------------
 async function loadAlerts() {
+  if (IS_GUEST) {
+    // Prevent network call in guest mode
+    const dashboardAlertList = document.getElementById("dashboardAlertList");
+    if (dashboardAlertList) {
+      dashboardAlertList.innerHTML = "<p>Alerts are hidden in Guest mode.</p>";
+    }
+    const alertList = document.getElementById("alertList");
+    if (alertList) {
+      alertList.innerHTML = "<p>Alerts are hidden in Guest mode.</p>";
+    }
+    updateAlertStats([]);
+    return [];
+  }
   try {
     const response = await fetch("/alerts_data");
     const data = await response.json();
@@ -573,6 +618,14 @@ function setupDeviceFilters() {
 // FEDERATED GLOBAL MODEL
 // -----------------------------
 async function loadGlobalModel() {
+  if (IS_GUEST) {
+    const container = document.getElementById("globalModel");
+    if (container) {
+      container.innerHTML = "<p>Federated details are hidden in Guest mode.</p>";
+    }
+    updateGlobalModelStats(null);
+    return null;
+  }
   try {
     const response = await fetch("/global_model");
     const data = await response.json();

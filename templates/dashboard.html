@@ -24,15 +24,15 @@
             📊 <span>Dashboard</span>
           </button>
 
+          {% if role != 'guest' %}
           <button class="menu-item" onclick="showSection('alertsSection', this)">
             🚨 <span>Alerts</span>
           </button>
+          {% endif %}
 
-          {% if role != 'guest' %}
           <button class="menu-item" onclick="showSection('devicesSection', this)">
             🖥️ <span>Devices</span>
           </button>
-          {% endif %}
 
           <button class="menu-item" onclick="showSection('mapSection', this)">
             🗺️ <span>Map</span>
@@ -42,6 +42,12 @@
           <button class="menu-item" onclick="showSection('federatedSection', this)">
             🧠 <span>Federated</span>
           </button>
+          {% endif %}
+
+          {% if role == 'admin' %}
+          <a class="menu-item" href="/admin" style="text-decoration:none; display:flex; align-items:center; gap:8px;">
+            🛠️ <span>Admin</span>
+          </a>
           {% endif %}
         </nav>
       </div>
@@ -166,6 +172,7 @@
         </section>
 
         <!-- ALERTS SECTION -->
+        {% if role != 'guest' %}
         <section class="section" id="alertsSection" style="display:none;">
           <div class="section-header">
             <h2>Alerts</h2>
@@ -192,6 +199,7 @@
             </div>
           </div>
         </section>
+        {% endif %}
 
         <!-- DEVICES SECTION -->
         <section class="section" id="devicesSection" style="display:none;">
@@ -228,6 +236,7 @@
         </section>
 
         <!-- FEDERATED SECTION -->
+        {% if role != 'guest' %}
         <section class="section" id="federatedSection" style="display:none;">
           <div class="section-header">
             <h2>Federated Learning</h2>
@@ -243,6 +252,7 @@
             </div>
           </div>
         </section>
+        {% endif %}
 
       </main>
     </div>
