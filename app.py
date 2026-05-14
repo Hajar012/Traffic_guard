@@ -1,10 +1,11 @@
 import json
 import random
-from flask import Flask, render_template, request, redirect, session, jsonify
+from flask import Flask, render_template, request, redirect, session, jsonify, make_response, url_for
 
 from backend.extensions import db
 from Fedarated.federated import aggregate_models
 from Fedarated.client import train_local_model
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 
@@ -53,6 +54,45 @@ def select_role():
 
 
 # -------------------------------
+# BASIC RBAC UTILITIES
+# -------------------------------
+def role_required(*allowed_roles, api=False):
+    """Decorator factory to restrict access based on session role.
+
+    - For HTML routes (api=False): unauthorized users are redirected to '/select-role'.
+    - For API routes (api=True): returns JSON 403.
+    """
+    def decorator(fn):
+        from functools import wraps
+
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            role = session.get("role", "guest")
+            if allowed_roles and role not in allowed_roles:
+                # Decide response type
+                if api or request.is_json or request.accept_mimetypes.best == "application/json":
+                    return jsonify({"error": "Forbidden"}), 403
+                # Redirect for HTML endpoints
+                return redirect(url_for("dashboard"))
+            return fn(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
+
+# -------------------------------
+# GUEST PREVIEW (no login)
+# -------------------------------
+@app.route("/guest-preview")
+def guest_preview():
+    # Directly set a guest session and open dashboard
+    session["role"] = "guest"
+    session["email"] = "guest@traffic.com"
+    session["name"] = "Guest User"
+    return redirect("/")
+
+
+# -------------------------------
 # LOGIN PAGE
 # -------------------------------
 @app.route("/login", methods=["GET", "POST"])
@@ -94,13 +134,14 @@ def logout():
 # -------------------------------
 @app.route("/")
 def dashboard():
-    if "role" not in session:
-        return redirect("/select-role")
+    # Allow homepage without login: treat as guest if no session
+    role = session.get("role", "guest")
+    name = session.get("name", "Guest User")
 
     return render_template(
         "dashboard.html",
-        role=session["role"],
-        name=session["name"]
+        role=role,
+        name=name
     )
 
 
@@ -163,6 +204,7 @@ def device_status():
 # ALERTS API
 # -------------------------------
 @app.route("/alerts_data")
+@role_required("authority", "admin", api=True)
 def alerts_data():
     alerts = Alert.query.order_by(Alert.timestamp.desc()).all()
     return jsonify([alert.to_dict() for alert in alerts])
@@ -173,6 +215,7 @@ def alerts_data():
 # -------------------------------
 @app.route("/update_alert", methods=["POST"])
 @app.route("/alerts_update", methods=["POST"])
+@role_required("authority", "admin", api=True)
 def update_alert():
     data = request.get_json()
 
@@ -353,6 +396,7 @@ def detect():
 # It also triggers local model training and stores JSON weights.
 # -------------------------------
 @app.route("/feedback", methods=["POST"])
+@role_required("authority", "admin", api=True)
 def feedback():
     data = request.get_json()
 
@@ -410,6 +454,7 @@ def feedback():
 # Raw data is never sent, only model parameters.
 # -------------------------------
 @app.route("/federated/update", methods=["POST"])
+@role_required("authority", "admin", api=True)
 def federated_update():
     data = request.get_json()
 
@@ -446,6 +491,7 @@ def federated_update():
 # Aggregates all device updates using FedAvg.
 # -------------------------------
 @app.route("/global_model")
+@role_required("authority", "admin", api=True)
 def global_model():
     result = aggregate_models()
 
@@ -453,6 +499,124 @@ def global_model():
         return jsonify({"message": "No data yet"})
 
     return jsonify(result)
+
+
+# -------------------------------
+# PUBLIC PAGES (Guest-accessible)
+# -------------------------------
+@app.route("/awareness")
+def awareness_page():
+    return render_template("awareness.html")
+
+
+@app.route("/privacy")
+def privacy_page():
+    return render_template("privacy.html")
+
+
+@app.route("/terms")
+def terms_page():
+    return render_template("terms.html")
+
+
+# -------------------------------
+# AUTHORITY PAGES
+# -------------------------------
+@app.route("/authority/logs")
+@role_required("authority", "admin")
+def authority_logs():
+    alerts = Alert.query.order_by(Alert.timestamp.desc()).limit(100).all()
+    feedbacks = Feedback.query.order_by(Feedback.timestamp.desc()).limit(100).all()
+    return render_template("authority_logs.html", alerts=alerts, feedbacks=feedbacks)
+
+
+@app.route("/export/reports")
+@role_required("authority", "admin")
+def export_reports():
+    # Export alerts report as CSV
+    from io import StringIO
+    import csv
+
+    alerts = Alert.query.order_by(Alert.timestamp.desc()).all()
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(["id", "timestamp", "device_id", "type", "confidence", "status", "location", "lat", "lon"])
+    for a in alerts:
+        writer.writerow([
+            a.id,
+            a.timestamp.strftime("%Y-%m-%d %H:%M:%S") if a.timestamp else "",
+            a.device_id or "",
+            a.type or "",
+            a.confidence if a.confidence is not None else "",
+            a.status or "",
+            a.location or "",
+            a.lat if a.lat is not None else "",
+            a.lon if a.lon is not None else "",
+        ])
+
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=traffic_reports.csv"
+    output.headers["Content-Type"] = "text/csv"
+    return output
+
+
+# -------------------------------
+# ADMIN PAGES
+# -------------------------------
+@app.route("/admin")
+@role_required("admin")
+def admin_home():
+    users = User.query.order_by(User.id.asc()).all() if hasattr(User, 'query') else []
+    devices = Device.query.order_by(Device.device_id.asc()).all()
+    updates = ModelUpdate.query.order_by(ModelUpdate.timestamp.desc()).limit(50).all()
+    return render_template("admin.html", users=users, devices=devices, updates=updates)
+
+
+# -------------------------------
+# ADMIN API: CREATE USER
+# -------------------------------
+@app.route("/admin/users", methods=["POST"])
+@role_required("admin", api=True)
+def admin_create_user():
+    # Accept JSON or form-encoded
+    data = request.get_json(silent=True) or request.form
+
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+    role = (data.get("role") or "").strip().lower()
+
+    # Basic validation
+    if not name or not email or not password or not role:
+        return jsonify({"error": "All fields (name, email, password, role) are required."}), 400
+
+    # Email domain restriction
+    if not email.endswith("@traffic.com"):
+        return jsonify({"error": "Only @traffic.com emails are allowed."}), 400
+
+    # Role allowlist aligned with app
+    allowed_roles = {"admin", "authority", "guest"}
+    if role not in allowed_roles:
+        return jsonify({"error": f"Invalid role. Allowed: {', '.join(sorted(allowed_roles))}"}), 400
+
+    # Uniqueness check against Users table
+    existing = User.query.filter_by(email=email).first()
+    if existing:
+        return jsonify({"error": "Email already exists."}), 409
+
+    # Hash password before storing
+    pw_hash = generate_password_hash(password)
+
+    user = User(email=email, password=pw_hash, role=role, name=name)
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "role": user.role
+    }), 201
 
 
 # -------------------------------

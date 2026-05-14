@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin | Traffic Guard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app" style="display:block; padding:24px; max-width:1200px; margin:0 auto;">
+    <h2>Admin Management</h2>
+    <p class="muted">Manage users, devices, and monitor model updates.</p>
+
+    <div class="grid grid-3" style="gap:16px; margin-top:16px;">
+      <div class="card">
+        <h3>Users</h3>
+        <p class="muted">Accounts and roles</p>
+
+        <div style="display:flex; gap:8px; margin:8px 0 12px; flex-wrap:wrap;">
+          <button id="btnOpenAddUser" class="action-btn" style="background:#1d4ed8; color:#fff;">
+            ➕ Add User
+          </button>
+          <button class="action-btn" style="background:#6b7280; color:#fff;" disabled title="Coming soon">
+            📥 Import Users
+          </button>
+          <button class="action-btn" style="background:#10b981; color:#fff;" disabled title="Coming soon">
+            ✉️ Invite User
+          </button>
+        </div>
+        <div style="overflow:auto;">
+          <table class="table" style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.name }}</td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.role }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Devices</h3>
+        <p class="muted">Connected edge devices</p>
+        <div style="overflow:auto;">
+          <table class="table" style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in devices %}
+              <tr>
+                <td>{{ d.device_id }}</td>
+                <td>{{ d.location }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Model Updates</h3>
+        <p class="muted">Recent federated updates</p>
+        <div style="overflow:auto;">
+          <table class="table" style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Device</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in updates %}
+              <tr>
+                <td>{{ m.timestamp.strftime('%Y-%m-%d %H:%M:%S') if m.timestamp else '' }}</td>
+                <td>{{ m.device_id }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Model Management</h3>
+      <p class="muted">Update detection settings (stub)</p>
+      <p>YOLO configuration updates can be integrated here if supported by backend.</p>
+    </div>
+
+    <p style="margin-top:20px;"><a href="/">← Back to Dashboard</a></p>
+  </div>
+
+  <!-- Add User Modal (UI only, no backend submission yet) -->
+  <div id="addUserModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:9999;">
+    <div class="card" style="width:520px; max-width:92vw; padding:20px; position:relative;">
+      <h3 style="margin-top:0;">Add User</h3>
+      <p class="muted">UI only for now — wire to backend later</p>
+
+      <form id="addUserForm">
+        <div class="grid grid-2" style="gap:12px;">
+          <div>
+            <label for="au_name"><strong>Name</strong></label>
+            <input id="au_name" type="text" placeholder="Full name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+          </div>
+          <div>
+            <label for="au_email"><strong>Email</strong></label>
+            <input id="au_email" type="email" placeholder="user@example.com" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+          </div>
+          <div>
+            <label for="au_role"><strong>Role</strong></label>
+            <select id="au_role" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+              <option value="authority">Authority</option>
+              <option value="admin">Admin</option>
+              <option value="guest">Guest</option>
+            </select>
+          </div>
+          <div>
+            <label for="au_password"><strong>Password</strong></label>
+            <input id="au_password" type="password" placeholder="••••••••" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+          </div>
+        </div>
+        <p id="addUserError" class="muted" style="color:#b91c1c; display:none; margin:8px 0 0;"></p>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
+          <button type="button" id="btnCancelAddUser" class="action-btn" style="background:#6b7280; color:#fff;">Cancel</button>
+          <button type="submit" class="action-btn" style="background:#1d4ed8; color:#fff;">Save</button>
+        </div>
+      </form>
+      <button id="btnCloseAddUserX" title="Close" style="position:absolute; top:10px; right:10px; border:none; background:#eee; border-radius:50%; width:28px; height:28px; cursor:pointer;">✕</button>
+    </div>
+  </div>
+
+  <script>
+    const addUserModal = document.getElementById('addUserModal');
+    const btnOpenAddUser = document.getElementById('btnOpenAddUser');
+    const btnCancelAddUser = document.getElementById('btnCancelAddUser');
+    const btnCloseAddUserX = document.getElementById('btnCloseAddUserX');
+    const addUserForm = document.getElementById('addUserForm');
+    const addUserError = document.getElementById('addUserError');
+
+    function openAddUser() {
+      if (!addUserModal) return;
+      addUserModal.style.display = 'flex';
+    }
+
+    function closeAddUser() {
+      if (!addUserModal) return;
+      addUserModal.style.display = 'none';
+    }
+
+    if (btnOpenAddUser) btnOpenAddUser.addEventListener('click', openAddUser);
+    if (btnCancelAddUser) btnCancelAddUser.addEventListener('click', closeAddUser);
+    if (btnCloseAddUserX) btnCloseAddUserX.addEventListener('click', closeAddUser);
+    if (addUserModal) addUserModal.addEventListener('click', (e) => {
+      if (e.target === addUserModal) closeAddUser();
+    });
+
+    function appendUserRow(user) {
+      const tbody = document.querySelector('.card table tbody');
+      if (!tbody) return;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${user.id}</td>
+        <td>${user.name}</td>
+        <td>${user.email}</td>
+        <td>${user.role}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function setAddUserError(msg) {
+      if (!addUserError) return;
+      if (msg) {
+        addUserError.textContent = msg;
+        addUserError.style.display = 'block';
+      } else {
+        addUserError.textContent = '';
+        addUserError.style.display = 'none';
+      }
+    }
+
+    if (addUserForm) {
+      addUserForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setAddUserError('');
+
+        const name = document.getElementById('au_name')?.value.trim();
+        const email = document.getElementById('au_email')?.value.trim().toLowerCase();
+        const role = document.getElementById('au_role')?.value.trim().toLowerCase();
+        const password = document.getElementById('au_password')?.value;
+
+        if (!name || !email || !role || !password) {
+          setAddUserError('All fields are required.');
+          return;
+        }
+
+        if (!email.endsWith('@traffic.com')) {
+          setAddUserError('Only @traffic.com emails are allowed.');
+          return;
+        }
+
+        try {
+          const resp = await fetch('/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, role, password })
+          });
+
+          const data = await resp.json().catch(() => ({}));
+
+          if (!resp.ok) {
+            setAddUserError(data && data.error ? data.error : 'Failed to create user.');
+            return;
+          }
+
+          appendUserRow(data);
+
+          // Clear inputs
+          document.getElementById('au_name').value = '';
+          document.getElementById('au_email').value = '';
+          document.getElementById('au_password').value = '';
+          document.getElementById('au_role').value = 'authority';
+
+          closeAddUser();
+        } catch (err) {
+          setAddUserError('Network error. Please try again.');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

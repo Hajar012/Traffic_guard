@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-model = YOLO("yolo11l.pt")
+model = YOLO("yolo/runs/detect/train8/weights/best.pt")
 VEHICLE_CLASSES = [1, 2, 3, 5, 7]
 ORDER = ["north", "west", "south", "east"]
 CHECKPOINT = "east"
@@ -601,7 +601,8 @@ def count_vehicles_for_road(frame, model, road, conf=0.35):
         classes=VEHICLE_CLASSES,
         conf=conf,
         persist=True,
-        verbose=False
+        verbose=False,
+        imgsz=640
     )
 
     raw_count = 0

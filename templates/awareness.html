@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Awareness | Traffic Guard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app" style="display:block; padding:24px; max-width:900px; margin:0 auto;">
+    <h2>Awareness</h2>
+    <p class="muted">Traffic safety awareness, data privacy, usage guidelines, and risk awareness.</p>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Traffic Safety Awareness</h3>
+      <ul>
+        <li>Always follow traffic signals and speed limits.</li>
+        <li>Yield to pedestrians and emergency vehicles.</li>
+        <li>Maintain safe distance and avoid distractions.</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Data Privacy</h3>
+      <ul>
+        <li>No personally identifiable information is stored in alerts.</li>
+        <li>Only metadata and model parameters are used for learning.</li>
+        <li>Federated learning keeps raw data on edge devices.</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>System Usage Guidelines</h3>
+      <ul>
+        <li>Guest users can view public information and summaries.</li>
+        <li>Authorities verify or reject alerts and export reports.</li>
+        <li>Admins manage users, devices, and model configurations.</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Risk Awareness</h3>
+      <ul>
+        <li>AI detections may include false positives or negatives.</li>
+        <li>Verification decisions are logged for audit and improvement.</li>
+        <li>Use manual overrides carefully and follow policy.</li>
+      </ul>
+    </div>
+
+    <p style="margin-top:20px;"><a href="/">← Back to Dashboard</a></p>
+  </div>
+</body>
+</html>
