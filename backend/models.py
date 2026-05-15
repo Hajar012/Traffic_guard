@@ -57,17 +57,27 @@ class Alert(db.Model):
 class Device(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # auto increment
     device_id = db.Column(db.String(50), unique=True)
+    # Human-friendly name/identifier (optional separate from device_id)
+    name = db.Column(db.String(100))
+    type = db.Column(db.String(50))  # camera, sensor, etc.
+    status = db.Column(db.String(20), default="Offline")
     location = db.Column(db.String(200))
+    lat = db.Column(db.Float)
+    lon = db.Column(db.Float)
 
     def to_dict(self, last_update=None):
+        # Determine online status: prefer explicit status, fallback to last_update presence
+        computed_status = self.status or ("Online" if last_update else "Offline")
         return {
             "id": self.device_id,
             "device_id": self.device_id,
+            "name": self.name,
+            "type": self.type,
             "location": self.location,
-            "status": "Online" if last_update else "No Updates",
+            "status": computed_status,
             "last_update": last_update.strftime("%Y-%m-%d %H:%M:%S") if last_update else None,
-            "lat": 24.7136,
-            "lon": 46.6753
+            "lat": self.lat,
+            "lon": self.lon,
         }
 
 # Feedback Table

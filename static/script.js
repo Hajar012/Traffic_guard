@@ -90,6 +90,18 @@ document.addEventListener("DOMContentLoaded", () => {
       loadMap();
     }
   }, 5000);
+
+  // Admin-only: wire Add Device modal if present
+  const deviceForm = document.getElementById('deviceForm');
+  if (deviceForm) {
+    deviceForm.addEventListener('submit', submitAddDevice);
+  }
+
+  // Admin-only: wire Add User modal if present (in Devices section)
+  const addUserForm = document.getElementById('addUserForm');
+  if (addUserForm) {
+    addUserForm.addEventListener('submit', submitAddUser);
+  }
 });
 
 // -----------------------------
@@ -859,3 +871,155 @@ function focusAlertOnMap(alertId) {
 
 // Expose for inline onclick handlers
 window.focusAlertOnMap = focusAlertOnMap;
+
+// -----------------------------
+// ADD DEVICE (ADMIN)
+// -----------------------------
+function openAddDeviceModal() {
+  const modal = document.getElementById('addDeviceModal');
+  if (!modal) return;
+  // clear any previous error
+  const err = document.getElementById('deviceErrorMsg');
+  if (err) err.textContent = '';
+  // clear inputs
+  const idInput = document.getElementById('deviceIdInput');
+  const nameInput = document.getElementById('deviceNameInput');
+  const typeInput = document.getElementById('deviceTypeInput');
+  const statusInput = document.getElementById('deviceStatusInput');
+  const locInput = document.getElementById('deviceLocationInput');
+  const latInput = document.getElementById('deviceLatInput');
+  const lonInput = document.getElementById('deviceLonInput');
+  if (idInput) idInput.value = '';
+  if (nameInput) nameInput.value = '';
+  if (typeInput) typeInput.value = '';
+  if (statusInput) statusInput.value = 'online';
+  if (locInput) locInput.value = '';
+  if (latInput) latInput.value = '';
+  if (lonInput) lonInput.value = '';
+  modal.style.display = 'flex';
+}
+
+function closeAddDeviceModal() {
+  const modal = document.getElementById('addDeviceModal');
+  if (!modal) return;
+  modal.style.display = 'none';
+}
+
+async function submitAddDevice(event) {
+  event.preventDefault();
+  const idInput = document.getElementById('deviceIdInput');
+  const nameInput = document.getElementById('deviceNameInput');
+  const typeInput = document.getElementById('deviceTypeInput');
+  const statusInput = document.getElementById('deviceStatusInput');
+  const locInput = document.getElementById('deviceLocationInput');
+  const latInput = document.getElementById('deviceLatInput');
+  const lonInput = document.getElementById('deviceLonInput');
+  const err = document.getElementById('deviceErrorMsg');
+
+  if (!idInput || !nameInput || !typeInput || !statusInput || !locInput || !latInput || !lonInput) return;
+
+  const device_id = (idInput.value || '').trim();
+  const name = (nameInput.value || '').trim();
+  const type = (typeInput.value || '').trim();
+  const status = (statusInput.value || '').trim();
+  const location = (locInput.value || '').trim();
+  const lat = (latInput.value || '').trim();
+  const lon = (lonInput.value || '').trim();
+
+  if (!device_id || !name || !type || !status || !location || !lat || !lon) {
+    if (err) err.textContent = 'All fields are required';
+    return;
+  }
+
+  try {
+    const resp = await fetch('/admin/devices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id, name, type, status, location, lat, lon })
+    });
+
+    const data = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      if (err) err.textContent = data && data.error ? data.error : 'Failed to add device';
+      return;
+    }
+
+    // Refresh devices list and map
+    await loadDevices();
+    if (liveMapInstance) {
+      await loadMap();
+    }
+
+    closeAddDeviceModal();
+  } catch (e) {
+    console.error('Add device failed:', e);
+    if (err) err.textContent = 'Could not reach server. Try again.';
+  }
+}
+
+// expose for inline handlers
+window.openAddDeviceModal = openAddDeviceModal;
+window.closeAddDeviceModal = closeAddDeviceModal;
+
+// -----------------------------
+// ADD USER (ADMIN in Devices section)
+// -----------------------------
+function openAddUserModal() {
+  const modal = document.getElementById('addUserModal');
+  const err = document.getElementById('addUserError');
+  if (err) { err.textContent = ''; err.style.display = 'none'; }
+  const name = document.getElementById('au_name');
+  const email = document.getElementById('au_email');
+  const role = document.getElementById('au_role');
+  const password = document.getElementById('au_password');
+  if (name) name.value = '';
+  if (email) email.value = '';
+  if (role) role.value = 'authority';
+  if (password) password.value = '';
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeAddUserModal() {
+  const modal = document.getElementById('addUserModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitAddUser(e) {
+  e.preventDefault();
+  const name = document.getElementById('au_name')?.value.trim();
+  const email = document.getElementById('au_email')?.value.trim().toLowerCase();
+  const role = document.getElementById('au_role')?.value.trim().toLowerCase();
+  const password = document.getElementById('au_password')?.value;
+  const err = document.getElementById('addUserError');
+
+  if (!name || !email || !role || !password) {
+    if (err) { err.textContent = 'All fields are required.'; err.style.display = 'block'; }
+    return;
+  }
+  if (!email.endsWith('@traffic.com')) {
+    if (err) { err.textContent = 'Only @traffic.com emails are allowed.'; err.style.display = 'block'; }
+    return;
+  }
+
+  try {
+    const resp = await fetch('/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, role, password })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      if (err) { err.textContent = data && data.error ? data.error : 'Failed to create user.'; err.style.display = 'block'; }
+      return;
+    }
+    // Close modal on success
+    closeAddUserModal();
+  } catch (ex) {
+    if (err) { err.textContent = 'Network error. Please try again.'; err.style.display = 'block'; }
+  }
+}
+
+// Expose
+window.openAddUserModal = openAddUserModal;
+window.closeAddUserModal = closeAddUserModal;

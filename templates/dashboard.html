@@ -34,6 +34,7 @@
             🖥️ <span>Devices</span>
           </button>
 
+
           <button class="menu-item" onclick="showSection('mapSection', this)">
             🗺️ <span>Map</span>
           </button>
@@ -206,6 +207,11 @@
           <div class="section-header">
             <h2>Edge Devices</h2>
             <p>Real devices from the database</p>
+            {% if role == 'admin' %}
+            <div style="margin-top:8px;">
+              <button class="action-btn" style="background:#1d4ed8; color:#fff;" onclick="openAddDeviceModal()">➕ Add Device</button>
+            </div>
+            {% endif %}
           </div>
 
           <div class="device-controls">
@@ -271,5 +277,76 @@
   </div>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+  {% if role == 'admin' %}
+  <!-- Add Device Modal (Admin only) -->
+  <div id="addDeviceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:10000;">
+    <div style="background:#fff; border-radius:10px; width:520px; max-width:92vw; padding:18px; position:relative;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <h3 style="margin:0;">Add Edge Device</h3>
+        <button onclick="closeAddDeviceModal()" style="background:#111; color:#fff; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer;">✕</button>
+      </div>
+
+      <form id="deviceForm">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="grid grid-2" style="gap:10px;">
+            <div>
+              <label for="deviceIdInput">Device ID</label>
+              <input id="deviceIdInput" type="text" placeholder="e.g., ED-004" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" required>
+            </div>
+            <div>
+              <label for="deviceNameInput">Name</label>
+              <input id="deviceNameInput" type="text" placeholder="e.g., North Cam 1" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" required>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="gap:10px;">
+            <div>
+              <label for="deviceTypeInput">Type</label>
+              <select id="deviceTypeInput" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" required>
+                <option value="">Select type</option>
+                <option value="camera">Camera</option>
+                <option value="sensor">Sensor</option>
+                <option value="traffic_light">Traffic Light</option>
+              </select>
+            </div>
+            <div>
+              <label for="deviceStatusInput">Status</label>
+              <select id="deviceStatusInput" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" required>
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="deviceLocationInput">Location</label>
+            <input id="deviceLocationInput" type="text" placeholder="e.g., King Fahd Road" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" required>
+          </div>
+
+          <div class="grid grid-2" style="gap:10px;">
+            <div>
+              <label for="deviceLatInput">Latitude</label>
+              <input id="deviceLatInput" type="number" step="any" placeholder="e.g., 24.7136" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" required>
+            </div>
+            <div>
+              <label for="deviceLonInput">Longitude</label>
+              <input id="deviceLonInput" type="number" step="any" placeholder="e.g., 46.6753" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" required>
+            </div>
+          </div>
+
+          <div id="deviceErrorMsg" style="color:#b91c1c; min-height:18px; font-size:14px;"></div>
+
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+            <button type="button" class="action-btn" style="background:#6b7280; color:#fff;" onclick="closeAddDeviceModal()">Cancel</button>
+            <button type="submit" class="action-btn" style="background:#1d4ed8; color:#fff;">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% endif %}
 </body>
 </html>

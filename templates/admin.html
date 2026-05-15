@@ -15,17 +15,8 @@
       <div class="card">
         <h3>Users</h3>
         <p class="muted">Accounts and roles</p>
-
-        <div style="display:flex; gap:8px; margin:8px 0 12px; flex-wrap:wrap;">
-          <button id="btnOpenAddUser" class="action-btn" style="background:#1d4ed8; color:#fff;">
-            ➕ Add User
-          </button>
-          <button class="action-btn" style="background:#6b7280; color:#fff;" disabled title="Coming soon">
-            📥 Import Users
-          </button>
-          <button class="action-btn" style="background:#10b981; color:#fff;" disabled title="Coming soon">
-            ✉️ Invite User
-          </button>
+        <div style="margin:8px 0 12px;">
+          <button class="action-btn" style="background:#1d4ed8; color:#fff;" onclick="openAddUserModal()">👤 Add User</button>
         </div>
         <div style="overflow:auto;">
           <table class="table" style="width:100%; border-collapse:collapse;">
@@ -107,25 +98,23 @@
     <p style="margin-top:20px;"><a href="/">← Back to Dashboard</a></p>
   </div>
 
-  <!-- Add User Modal (UI only, no backend submission yet) -->
-  <div id="addUserModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:9999;">
+  <!-- Add User Modal (Admin only) -->
+  <div id="addUserModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:10000;">
     <div class="card" style="width:520px; max-width:92vw; padding:20px; position:relative;">
       <h3 style="margin-top:0;">Add User</h3>
-      <p class="muted">UI only for now — wire to backend later</p>
-
       <form id="addUserForm">
         <div class="grid grid-2" style="gap:12px;">
           <div>
             <label for="au_name"><strong>Name</strong></label>
-            <input id="au_name" type="text" placeholder="Full name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+            <input id="au_name" type="text" placeholder="Full name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;" required>
           </div>
           <div>
             <label for="au_email"><strong>Email</strong></label>
-            <input id="au_email" type="email" placeholder="user@example.com" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+            <input id="au_email" type="email" placeholder="user@traffic.com" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;" required>
           </div>
           <div>
             <label for="au_role"><strong>Role</strong></label>
-            <select id="au_role" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+            <select id="au_role" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;" required>
               <option value="authority">Authority</option>
               <option value="admin">Admin</option>
               <option value="guest">Guest</option>
@@ -133,117 +122,80 @@
           </div>
           <div>
             <label for="au_password"><strong>Password</strong></label>
-            <input id="au_password" type="password" placeholder="••••••••" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+            <input id="au_password" type="password" placeholder="••••••••" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;" required>
           </div>
         </div>
         <p id="addUserError" class="muted" style="color:#b91c1c; display:none; margin:8px 0 0;"></p>
-
         <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
-          <button type="button" id="btnCancelAddUser" class="action-btn" style="background:#6b7280; color:#fff;">Cancel</button>
+          <button type="button" class="action-btn" style="background:#6b7280; color:#fff;" onclick="closeAddUserModal()">Cancel</button>
           <button type="submit" class="action-btn" style="background:#1d4ed8; color:#fff;">Save</button>
         </div>
       </form>
-      <button id="btnCloseAddUserX" title="Close" style="position:absolute; top:10px; right:10px; border:none; background:#eee; border-radius:50%; width:28px; height:28px; cursor:pointer;">✕</button>
+      <button title="Close" onclick="closeAddUserModal()" style="position:absolute; top:10px; right:10px; border:none; background:#eee; border-radius:50%; width:28px; height:28px; cursor:pointer;">✕</button>
     </div>
   </div>
 
   <script>
-    const addUserModal = document.getElementById('addUserModal');
-    const btnOpenAddUser = document.getElementById('btnOpenAddUser');
-    const btnCancelAddUser = document.getElementById('btnCancelAddUser');
-    const btnCloseAddUserX = document.getElementById('btnCloseAddUserX');
-    const addUserForm = document.getElementById('addUserForm');
-    const addUserError = document.getElementById('addUserError');
-
-    function openAddUser() {
-      if (!addUserModal) return;
-      addUserModal.style.display = 'flex';
+    function openAddUserModal() {
+      const modal = document.getElementById('addUserModal');
+      const err = document.getElementById('addUserError');
+      if (err) { err.textContent = ''; err.style.display = 'none'; }
+      const name = document.getElementById('au_name');
+      const email = document.getElementById('au_email');
+      const role = document.getElementById('au_role');
+      const password = document.getElementById('au_password');
+      if (name) name.value = '';
+      if (email) email.value = '';
+      if (role) role.value = 'authority';
+      if (password) password.value = '';
+      if (modal) modal.style.display = 'flex';
     }
 
-    function closeAddUser() {
-      if (!addUserModal) return;
-      addUserModal.style.display = 'none';
+    function closeAddUserModal() {
+      const modal = document.getElementById('addUserModal');
+      if (modal) modal.style.display = 'none';
     }
 
-    if (btnOpenAddUser) btnOpenAddUser.addEventListener('click', openAddUser);
-    if (btnCancelAddUser) btnCancelAddUser.addEventListener('click', closeAddUser);
-    if (btnCloseAddUserX) btnCloseAddUserX.addEventListener('click', closeAddUser);
-    if (addUserModal) addUserModal.addEventListener('click', (e) => {
-      if (e.target === addUserModal) closeAddUser();
-    });
+    async function submitAddUser(e) {
+      e.preventDefault();
+      const name = document.getElementById('au_name')?.value.trim();
+      const email = document.getElementById('au_email')?.value.trim().toLowerCase();
+      const role = document.getElementById('au_role')?.value.trim().toLowerCase();
+      const password = document.getElementById('au_password')?.value;
+      const err = document.getElementById('addUserError');
 
-    function appendUserRow(user) {
-      const tbody = document.querySelector('.card table tbody');
-      if (!tbody) return;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${user.id}</td>
-        <td>${user.name}</td>
-        <td>${user.email}</td>
-        <td>${user.role}</td>
-      `;
-      tbody.appendChild(tr);
-    }
+      if (!name || !email || !role || !password) {
+        if (err) { err.textContent = 'All fields are required.'; err.style.display = 'block'; }
+        return;
+      }
+      if (!email.endsWith('@traffic.com')) {
+        if (err) { err.textContent = 'Only @traffic.com emails are allowed.'; err.style.display = 'block'; }
+        return;
+      }
 
-    function setAddUserError(msg) {
-      if (!addUserError) return;
-      if (msg) {
-        addUserError.textContent = msg;
-        addUserError.style.display = 'block';
-      } else {
-        addUserError.textContent = '';
-        addUserError.style.display = 'none';
+      try {
+        const resp = await fetch('/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, role, password })
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          if (err) { err.textContent = data && data.error ? data.error : 'Failed to create user.'; err.style.display = 'block'; }
+          return;
+        }
+        // On success, close and optionally refresh page to show new user in table
+        closeAddUserModal();
+        try { window.location.reload(); } catch (_) {}
+      } catch (ex) {
+        if (err) { err.textContent = 'Network error. Please try again.'; err.style.display = 'block'; }
       }
     }
 
-    if (addUserForm) {
-      addUserForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        setAddUserError('');
-
-        const name = document.getElementById('au_name')?.value.trim();
-        const email = document.getElementById('au_email')?.value.trim().toLowerCase();
-        const role = document.getElementById('au_role')?.value.trim().toLowerCase();
-        const password = document.getElementById('au_password')?.value;
-
-        if (!name || !email || !role || !password) {
-          setAddUserError('All fields are required.');
-          return;
-        }
-
-        if (!email.endsWith('@traffic.com')) {
-          setAddUserError('Only @traffic.com emails are allowed.');
-          return;
-        }
-
-        try {
-          const resp = await fetch('/admin/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, role, password })
-          });
-
-          const data = await resp.json().catch(() => ({}));
-
-          if (!resp.ok) {
-            setAddUserError(data && data.error ? data.error : 'Failed to create user.');
-            return;
-          }
-
-          appendUserRow(data);
-
-          // Clear inputs
-          document.getElementById('au_name').value = '';
-          document.getElementById('au_email').value = '';
-          document.getElementById('au_password').value = '';
-          document.getElementById('au_role').value = 'authority';
-
-          closeAddUser();
-        } catch (err) {
-          setAddUserError('Network error. Please try again.');
-        }
-      });
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('addUserForm');
+      if (form) form.addEventListener('submit', submitAddUser);
+    });
   </script>
 </body>
 </html>
