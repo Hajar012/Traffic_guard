@@ -1,3 +1,4 @@
+import os
 import json
 import random
 from flask import Flask, render_template, request, redirect, session, jsonify, make_response, url_for
@@ -12,8 +13,15 @@ app = Flask(__name__)
 # -------------------------------
 # CONFIG
 # -------------------------------
-app.secret_key = "1122334455"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+
+app.secret_key = os.getenv("SECRET_KEY", "trafficguardsecret")
+database_url = os.getenv("DATABASE_URL")
+
+# Render PostgreSQL fix
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url or "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize DB FIRST
