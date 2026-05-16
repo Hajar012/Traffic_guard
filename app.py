@@ -27,6 +27,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Initialize DB FIRST
 db.init_app(app)
 
+with app.app_context():
+    db.create_all()
 # Import models AFTER db.init_app(app)
 from backend.models import User, Alert, Device, Feedback, ModelUpdate
 
